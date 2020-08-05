@@ -1,21 +1,20 @@
 package com.strawhat.mymovies.services.bindings
 
 import com.google.gson.annotations.SerializedName
-import java.io.Serializable
 
 
 data class MovieResponse(
     @SerializedName("page")
     var page: Int,
     @SerializedName("results")
-    var movies: List<Movie>,
+    var movieBindings: List<MovieBinding>,
     @SerializedName("total_pages")
     var totalPages: Int,
     @SerializedName("total_results")
     var totalResults: Int
 )
 
-data class Movie(
+data class MovieBinding(
     @SerializedName("backdrop_path")
     var backdropPath: String,
     @SerializedName("first_air_date")
@@ -42,4 +41,4 @@ data class Movie(
     var voteAverage: Double,
     @SerializedName("vote_count")
     var voteCount: Int
-) : Serializable
+)

@@ -1,4 +1,4 @@
-package com.strawhat.mymovies.vm
+package com.strawhat.mymovies.vm.main
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
@@ -7,8 +7,8 @@ import com.jakewharton.rxrelay3.PublishRelay
 
 
 import com.strawhat.mymovies.services.MovieRepository
-import com.strawhat.mymovies.services.bindings.Movie
-import com.strawhat.mymovies.vm.events.*
+import com.strawhat.mymovies.vm.MovieItem
+import com.strawhat.mymovies.vm.main.events.*
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.ObservableTransformer
@@ -39,7 +39,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return@ObservableTransformer event.flatMap { action ->
                 return@flatMap movieRepository.loadPage(action.page, action.sortMode)
                     .subscribeOn(Schedulers.io())
-                    .map(fun(it: Pair<List<Movie>, Boolean>): ViewResult {
+                    .map(fun(it: Pair<List<MovieItem>, Boolean>): ViewResult {
                         return LoadPageSuccessResult(action.page, it.first, it.second)
                     })
                     .onErrorReturn {
@@ -50,30 +50,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        val loadFavorites = ObservableTransformer<LoadFavoritesAction, ViewResult> { event ->
-            return@ObservableTransformer event.flatMap { action ->
-                return@flatMap movieRepository.loadFavorites(action.page)
-                    .subscribeOn(Schedulers.io())
-                    .map(fun(it: Pair<List<Movie>, Boolean>): ViewResult {
-                        return FavoritesSuccessResult(action.page, it.first, it.second)
-                    })
-                    .onErrorReturn {
-                        FavoritesPageFailResult(it)
-                    }
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .startWithItem(LoadingResult)
-            }
-        }
-
         val UI = ObservableTransformer<ViewAction, ViewResult> { event ->
             return@ObservableTransformer event.publish { shared ->
                 return@publish Observable.mergeArray(
-                    shared.ofType(LoadPageAction::class.java).compose(loadPage),
-                    shared.ofType(LoadFavoritesAction::class.java).compose(loadFavorites),
-                    shared.ofType(FavoritesActivatedAction::class.java)
-                        .map { FavoritesActivatedResult },
-                    shared.ofType(FavoritesDeActivatedAction::class.java)
-                        .map { FavoritesDeActivatedResult }
+                    shared.ofType(LoadPageAction::class.java).compose(loadPage)
                 )
 
             }
@@ -126,51 +106,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 state.copy(loading = true)
             }
             LoadPageRequestedResult -> {
-                if (state.loading.not() && state.hasNext && state.favoritesEnabled.not()) {
-                    viewActionsRelay.accept(LoadPageAction(state.lastPage + 1, state.sortMode))
-                }
-                if (state.loading.not() && state.hasNext && state.favoritesEnabled) {
-                    viewActionsRelay.accept(LoadFavoritesAction(state.lastPage + 1))
-                }
-                state.copy()
-            }
-            FavoritesActivatedResult -> {
-                state.copy(
-                    favoritesEnabled = true,
-                    lastPage = 0,
-                    items = linkedSetOf(),
-                    hasNext = true
-                )
-            }
-            FavoritesDeActivatedResult -> {
-                loadPageRequested()
-                state.copy(favoritesEnabled = false, lastPage = 0, items = linkedSetOf())
-            }
-            is FavoritesSuccessResult -> {
-                val items = state.items
-                result.items.forEach {
-                    if (items.contains(it).not()) {
-                        items.add(it)
-                    }
-                }
-                state.copy(
-                    hasNext = result.hasNext,
-                    lastPage = result.pageNumber,
-                    items = items,
-                    loading = false,
-                    errorMessage = null
-                )
-            }
-            is FavoritesPageFailResult -> {
-                state.copy(
-                    loading = false,
-                    errorMessage = result.throwable.message
-                )
-            }
-            is FavoritesRequestResult -> {
-                if (state.loading.not() && state.hasNext) {
-                    viewActionsRelay.accept(LoadFavoritesAction(state.lastPage + 1))
-                }
+                viewActionsRelay.accept(LoadPageAction(state.lastPage + 1, state.sortMode))
                 state.copy()
             }
             is SortModeChangedResult -> {
@@ -187,18 +123,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadPageRequested() {
         viewResultsRelay.accept(LoadPageRequestedResult)
-    }
-
-    fun favoritesActivated() {
-        viewActionsRelay.accept(FavoritesActivatedAction)
-    }
-
-    fun favoritesDeactivated() {
-        viewActionsRelay.accept(FavoritesDeActivatedAction)
-    }
-
-    fun loadFavorites() {
-        viewResultsRelay.accept(FavoritesRequestResult)
     }
 
     fun changeSortMode(sortMode: SortMode) {

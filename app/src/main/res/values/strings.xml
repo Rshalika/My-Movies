@@ -15,4 +15,6 @@
         <item>Top Rated</item>
         <item>Favorites Only</item>
     </array>
+    <string name="title_activity_details">DetailsActivity</string>
+
 </resources>
