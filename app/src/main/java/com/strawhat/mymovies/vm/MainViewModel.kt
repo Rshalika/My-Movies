@@ -37,7 +37,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun afterInit() {
         val loadPage = ObservableTransformer<LoadPageAction, ViewResult> { event ->
             return@ObservableTransformer event.flatMap { action ->
-                return@flatMap movieRepository.loadPage(action.page)
+                return@flatMap movieRepository.loadPage(action.page, action.sortMode)
                     .subscribeOn(Schedulers.io())
                     .map(fun(it: Pair<List<Movie>, Boolean>): ViewResult {
                         return LoadPageSuccessResult(action.page, it.first, it.second)
@@ -50,15 +50,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        val search = ObservableTransformer<SearchAction, ViewResult> { event ->
+        val loadFavorites = ObservableTransformer<LoadFavoritesAction, ViewResult> { event ->
             return@ObservableTransformer event.flatMap { action ->
-                return@flatMap movieRepository.searchForMovies(action.query, action.page)
+                return@flatMap movieRepository.loadFavorites(action.page)
                     .subscribeOn(Schedulers.io())
                     .map(fun(it: Pair<List<Movie>, Boolean>): ViewResult {
-                        return SearchSuccessResult(action.page, it.first, it.second)
+                        return FavoritesSuccessResult(action.page, it.first, it.second)
                     })
                     .onErrorReturn {
-                        SearchPageFailResult(it)
+                        FavoritesPageFailResult(it)
                     }
                     .observeOn(AndroidSchedulers.mainThread())
                     .startWithItem(LoadingResult)
@@ -69,10 +69,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             return@ObservableTransformer event.publish { shared ->
                 return@publish Observable.mergeArray(
                     shared.ofType(LoadPageAction::class.java).compose(loadPage),
-                    shared.ofType(SearchAction::class.java).compose(search),
-                    shared.ofType(SearchActivatedAction::class.java).map { SearchActivatedResult },
-                    shared.ofType(SearchDeActivatedAction::class.java)
-                        .map { SearchDeActivatedResult }
+                    shared.ofType(LoadFavoritesAction::class.java).compose(loadFavorites),
+                    shared.ofType(FavoritesActivatedAction::class.java)
+                        .map { FavoritesActivatedResult },
+                    shared.ofType(FavoritesDeActivatedAction::class.java)
+                        .map { FavoritesDeActivatedResult }
                 )
 
             }
@@ -125,29 +126,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 state.copy(loading = true)
             }
             LoadPageRequestedResult -> {
-                if (state.loading.not() && state.hasNext && state.searchEnabled.not()) {
-                    viewActionsRelay.accept(LoadPageAction(state.lastPage + 1))
+                if (state.loading.not() && state.hasNext && state.favoritesEnabled.not()) {
+                    viewActionsRelay.accept(LoadPageAction(state.lastPage + 1, state.sortMode))
                 }
-                if (state.loading.not() && state.hasNext && state.searchEnabled && state.searchQuery.isNullOrBlank()
-                        .not()
-                ) {
-                    viewActionsRelay.accept(SearchAction(state.lastPage + 1, state.searchQuery!!))
+                if (state.loading.not() && state.hasNext && state.favoritesEnabled) {
+                    viewActionsRelay.accept(LoadFavoritesAction(state.lastPage + 1))
                 }
                 state.copy()
             }
-            SearchActivatedResult -> {
+            FavoritesActivatedResult -> {
                 state.copy(
-                    searchEnabled = true,
+                    favoritesEnabled = true,
                     lastPage = 0,
                     items = linkedSetOf(),
                     hasNext = true
                 )
             }
-            SearchDeActivatedResult -> {
+            FavoritesDeActivatedResult -> {
                 loadPageRequested()
-                state.copy(searchEnabled = false, lastPage = 0, items = linkedSetOf())
+                state.copy(favoritesEnabled = false, lastPage = 0, items = linkedSetOf())
             }
-            is SearchSuccessResult -> {
+            is FavoritesSuccessResult -> {
                 val items = state.items
                 result.items.forEach {
                     if (items.contains(it).not()) {
@@ -162,17 +161,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     errorMessage = null
                 )
             }
-            is SearchPageFailResult -> {
+            is FavoritesPageFailResult -> {
                 state.copy(
                     loading = false,
                     errorMessage = result.throwable.message
                 )
             }
-            is SearchRequestResult -> {
+            is FavoritesRequestResult -> {
                 if (state.loading.not() && state.hasNext) {
-                    viewActionsRelay.accept(SearchAction(state.lastPage + 1, result.query))
+                    viewActionsRelay.accept(LoadFavoritesAction(state.lastPage + 1))
                 }
-                state.copy(searchQuery = result.query)
+                state.copy()
+            }
+            is SortModeChangedResult -> {
+                loadPageRequested()
+                state.copy(sortMode = result.sortMode, lastPage = 0, items = linkedSetOf())
             }
         }
     }
@@ -186,17 +189,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewResultsRelay.accept(LoadPageRequestedResult)
     }
 
-    fun searchActivated() {
-        viewActionsRelay.accept(SearchActivatedAction)
+    fun favoritesActivated() {
+        viewActionsRelay.accept(FavoritesActivatedAction)
     }
 
-    fun searchDeActivated() {
-        viewActionsRelay.accept(SearchDeActivatedAction)
+    fun favoritesDeactivated() {
+        viewActionsRelay.accept(FavoritesDeActivatedAction)
     }
 
-    fun search(query: String) {
+    fun loadFavorites() {
+        viewResultsRelay.accept(FavoritesRequestResult)
+    }
 
-        viewResultsRelay.accept(SearchRequestResult(query))
+    fun changeSortMode(sortMode: SortMode) {
+        viewResultsRelay.accept(SortModeChangedResult(sortMode))
     }
 
     override fun onCleared() {

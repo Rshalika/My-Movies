@@ -3,6 +3,8 @@ package com.strawhat.mymovies.ui
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
@@ -11,6 +13,7 @@ import com.strawhat.mymovies.MyApplication
 import com.strawhat.mymovies.R
 import com.strawhat.mymovies.vm.MainViewModel
 import com.strawhat.mymovies.vm.events.MainViewState
+import com.strawhat.mymovies.vm.events.SortMode
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.exceptions.OnErrorNotImplementedException
 import io.reactivex.rxjava3.kotlin.subscribeBy
@@ -29,6 +32,8 @@ class MainActivity : AppCompatActivity() {
 
     private val disposable = CompositeDisposable()
 
+    private var initialSpinnerSelection = true
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -37,7 +42,6 @@ class MainActivity : AppCompatActivity() {
         viewModel.afterInit()
         setupRecyclerView(findViewById(R.id.item_list))
         setUpLoadMoreListener()
-
         disposable.add(
             viewModel.viewStateRelay.subscribeBy(
                 onNext = {
@@ -48,6 +52,35 @@ class MainActivity : AppCompatActivity() {
                 }
             )
         )
+        sort_mode_chooser.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {
+
+            }
+
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
+                if (initialSpinnerSelection) {
+                    initialSpinnerSelection = false
+                    return
+                } else {
+                    when (position) {
+                        0 -> {
+                            viewModel.changeSortMode(SortMode.POPULAR)
+                        }
+                        1 -> {
+                            viewModel.changeSortMode(SortMode.TOP_RATED)
+                        }
+                        2 -> {
+                            viewModel.favoritesActivated()
+                        }
+                    }
+                }
+            }
+        }
 
     }
 

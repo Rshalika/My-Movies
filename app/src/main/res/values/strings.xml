@@ -9,4 +9,10 @@
 
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="showing">Showing:</string>
+    <array name="sort_modes">
+        <item>Popular</item>
+        <item>Top Rated</item>
+        <item>Favorites Only</item>
+    </array>
 </resources>

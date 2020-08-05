@@ -8,8 +8,12 @@ data class MainViewState(
     val items: LinkedHashSet<Movie> = linkedSetOf(),
     val loading: Boolean = false,
     val errorMessage: String? = null,
-    val searchEnabled: Boolean = false,
-    val searchQuery: String? = null,
+    val sortMode: SortMode = SortMode.POPULAR,
+    val favoritesEnabled: Boolean = false,
     val hasNext: Boolean = true
 
 )
+
+enum class SortMode {
+    POPULAR, TOP_RATED
+}
