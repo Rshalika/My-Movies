@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">My Movies</string>
+    <string name="app_name">Movix</string>
     <string name="favorite">Favorite</string>
 
     <!-- Strings used for fragments for navigation -->

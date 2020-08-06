@@ -16,6 +16,10 @@
         <item name="windowNoTitle">true</item>
     </style>
 
+    <style name="Theme.MyMovies.Launcher" parent="Theme.MyMovies">
+        <item name="android:windowBackground">@drawable/launch_screen</item>
+    </style>
+
     <style name="Theme.MyMovies.NoActionBar">
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>

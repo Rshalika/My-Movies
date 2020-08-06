@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setTheme(R.style.Theme_MyMovies)
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById(R.id.toolbar))
         (application as MyApplication).appComponent.inject(viewModel)
