@@ -12,7 +12,6 @@ import com.strawhat.mymovies.BuildConfig
 import com.strawhat.mymovies.R
 import com.strawhat.mymovies.vm.MovieItem
 
-
 class MovieListAdapter(
     private val parentActivity: MainActivity,
     val onClickListener: (MovieItem) -> Unit
@@ -37,12 +36,7 @@ class MovieListAdapter(
             .with(parentActivity)
             .load("${BuildConfig.IMAGES_URL_PREFIX}${item.posterPath}")
             .centerCrop()
-//            .placeholder(R.drawable.loader_image)
             .into(holder.imageView)
-
-        with(holder.itemView) {
-            tag = item
-        }
         holder.itemView.setOnClickListener {
             onClickListener(item)
         }
