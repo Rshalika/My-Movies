@@ -116,4 +116,13 @@ class MovieRepository(private val apiService: ApiService, private val movieDao: 
             isFavorite = entity.isFavorite
         )
     }
+
+    fun loadMovie(id: Int): MovieItem? {
+        val entity = movieDao.findById(id)
+        return if (entity != null) {
+            convertEntityToMovieItem(entity)
+        } else {
+            null
+        }
+    }
 }

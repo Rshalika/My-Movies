@@ -106,7 +106,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 state.copy(loading = true)
             }
             LoadPageRequestedResult -> {
-                viewActionsRelay.accept(LoadPageAction(state.lastPage + 1, state.sortMode))
+                if (state.loading.not()) {
+                    viewActionsRelay.accept(LoadPageAction(state.lastPage + 1, state.sortMode))
+                }
                 state.copy()
             }
             is SortModeChangedResult -> {

@@ -50,7 +50,24 @@ class DetailsViewModel : ViewModel() {
                     }
                         .subscribeOn(Schedulers.io())
                         .map {
-                            MarkAsFavoriteResult(action.id)
+                            UnMarkAsFavoriteResult(action.id)
+                        }
+                }
+            }
+        val loadMovie =
+            ObservableTransformer<LoadMovieAction, DetailsResult> { event ->
+                return@ObservableTransformer event.flatMap { action ->
+                    Observable.fromCallable {
+                        repository.loadMovie(action.id) ?: Unit
+                    }
+                        .subscribeOn(Schedulers.io())
+                        .map {
+                            if (it is Unit) {
+                                return@map LoadMovieResult(null)
+                            } else {
+                                return@map LoadMovieResult(it as MovieItem)
+                            }
+
                         }
                 }
             }
@@ -59,7 +76,8 @@ class DetailsViewModel : ViewModel() {
             return@ObservableTransformer event.publish { shared ->
                 return@publish Observable.mergeArray(
                     shared.ofType(MarkAsFavoriteAction::class.java).compose(markAsFavorite),
-                    shared.ofType(UnMarkAsFavoriteAction::class.java).compose(unMarkAsFavorite)
+                    shared.ofType(UnMarkAsFavoriteAction::class.java).compose(unMarkAsFavorite),
+                    shared.ofType(LoadMovieAction::class.java).compose(loadMovie)
                 )
             }
         }
@@ -88,10 +106,9 @@ class DetailsViewModel : ViewModel() {
 
     private fun reduce(state: DetailsState, result: DetailsResult): DetailsState {
         return when (result) {
-            is MarkAsFavoriteResult -> state.copy(movie = state.movie.apply { isFavorite = true })
-            is UnMarkAsFavoriteResult -> state.copy(movie = state.movie.apply {
-                isFavorite = false
-            })
+            is MarkAsFavoriteResult -> state.copy(movie = state.movie.copy(isFavorite = true))
+            is UnMarkAsFavoriteResult -> state.copy(movie = state.movie.copy(isFavorite = false))
+            is LoadMovieResult -> if (result.movie != null) state.copy(movie = result.movie) else state.copy()
         }
     }
 
@@ -107,5 +124,9 @@ class DetailsViewModel : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         disposable.dispose()
+    }
+
+    fun loadMovie(movie: MovieItem) {
+        viewActionsRelay.accept(LoadMovieAction(movie.id))
     }
 }
