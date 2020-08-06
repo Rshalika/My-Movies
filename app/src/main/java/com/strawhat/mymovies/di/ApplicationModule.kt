@@ -2,12 +2,16 @@ package com.strawhat.mymovies.di
 
 
 import android.app.Application
+import android.content.Context
+import android.net.ConnectivityManager
 import androidx.room.Room
 import com.strawhat.mymovies.BuildConfig
 import com.strawhat.mymovies.services.ApiService
 import com.strawhat.mymovies.services.MovieRepository
 import com.strawhat.mymovies.services.db.AppDatabase
 import com.strawhat.mymovies.services.db.MovieDao
+import com.strawhat.mymovies.services.system.CustomNetworkCallBack
+import com.strawhat.mymovies.services.system.SystemInfoService
 import dagger.Module
 import dagger.Provides
 import hu.akarnokd.rxjava3.retrofit.RxJava3CallAdapterFactory
@@ -60,4 +64,24 @@ class ApplicationModule(val application: Application) {
             AppDatabase::class.java, "movie_database"
         ).build().movieDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideConnectivityManager(): ConnectivityManager {
+        return application.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    }
+
+    @Provides
+    @Singleton
+    fun provideSystemInfoService(): SystemInfoService {
+        return SystemInfoService(application)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNetworkCallBack(systemInfoService: SystemInfoService): CustomNetworkCallBack {
+        return CustomNetworkCallBack(systemInfoService)
+    }
+
+
 }

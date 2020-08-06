@@ -7,6 +7,8 @@ import com.jakewharton.rxrelay3.PublishRelay
 
 
 import com.strawhat.mymovies.services.MovieRepository
+import com.strawhat.mymovies.services.system.NetworkState
+import com.strawhat.mymovies.services.system.SystemInfoService
 import com.strawhat.mymovies.vm.MovieItem
 import com.strawhat.mymovies.vm.main.events.*
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -33,20 +35,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     @Inject
     lateinit var movieRepository: MovieRepository
 
+    @Inject
+    lateinit var systemInfoService: SystemInfoService
+
 
     fun afterInit() {
         val loadPage = ObservableTransformer<LoadPageAction, ViewResult> { event ->
             return@ObservableTransformer event.flatMap { action ->
-                return@flatMap movieRepository.loadPage(action.page, action.sortMode)
-                    .subscribeOn(Schedulers.io())
-                    .map(fun(it: Pair<List<MovieItem>, Boolean>): ViewResult {
-                        return LoadPageSuccessResult(action.page, it.first, it.second)
-                    })
-                    .onErrorReturn {
-                        LoadPageFailResult(it)
+                return@flatMap systemInfoService.getNetworkState().flatMap { networkState ->
+                    if (networkState == NetworkState.CONNECTED) {
+                        movieRepository.loadPage(action.page, action.sortMode)
+                            .subscribeOn(Schedulers.io())
+                            .map(fun(it: Pair<List<MovieItem>, Boolean>): ViewResult {
+                                return LoadPageSuccessResult(action.page, it.first, it.second)
+                            })
+                            .onErrorReturn {
+                                LoadPageFailResult(it)
+                            }
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .startWithItem(LoadingResult)
+                    } else {
+                        Observable.just(NoInternetResult)
                     }
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .startWithItem(LoadingResult)
+                }
+
             }
         }
 
@@ -114,6 +126,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             is SortModeChangedResult -> {
                 loadPageRequested()
                 state.copy(sortMode = result.sortMode, lastPage = 0, items = linkedSetOf())
+            }
+            NoInternetResult -> {
+                state.copy(
+                    loading = false,
+                    errorMessage = "NoInternet"
+                )
             }
         }
     }

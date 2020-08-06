@@ -12,6 +12,7 @@ data class LoadPageSuccessResult(
 ) : ViewResult()
 
 data class LoadPageFailResult(val throwable: Throwable) : ViewResult()
+object NoInternetResult : ViewResult()
 object LoadPageRequestedResult : ViewResult()
 data class SortModeChangedResult(val sortMode: SortMode) : ViewResult()
 object LoadingResult : ViewResult()

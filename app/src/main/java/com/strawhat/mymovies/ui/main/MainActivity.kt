@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
@@ -98,6 +99,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateState(state: MainViewState) {
         adapter.setMovies(state.items.toMutableList())
+        if (state.errorMessage.isNullOrBlank().not()) {
+            if (state.errorMessage.equals("NoInternet")) {
+                Toast.makeText(
+                    this,
+                    resources.getText(R.string.no_internet_message),
+                    Toast.LENGTH_LONG
+                )
+                    .show()
+            } else {
+                Toast.makeText(this, state.errorMessage, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     override fun onDestroy() {
